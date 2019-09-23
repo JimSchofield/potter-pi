@@ -48,6 +48,7 @@ print("Training based off of " + str(len(train)) + " images")
 knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
 print("Training complete!")
 
+
 #########################
 # Set up camera capture
 #########################
@@ -63,6 +64,11 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 #########################
 def checkCategory(frame):
     print("Checking!")
+
+    formatted_frame = np.array(frame).reshape(-1, 320 * 240).astype(np.float32)
+    ret, result, neighbors, dist = knn.findNearest(formatted_frame, k = 5)
+    print(ret, result, neighbors, dist)
+    print("Category: " + train_label_dict[ret])
 
 #########################
 # Save to file - returns false if error
