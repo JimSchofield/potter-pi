@@ -1,14 +1,22 @@
+import getopt
+import sys
 import numpy as np
 import cv2
 import time
 import os
 
 TEST_PICS_DIR = "test_pics"
-
+TRAINING_DIR_CAT = ""
 
 #########################
 # Process Params
 #########################
+opts, args = getopt.getopt(sys.argv[1:], 't:', ['train='])
+if len(opts) > 0:
+    for opt, arg in opts:
+        if opt in ('-t', '--train'):
+            TRAINING_DIR_CAT = arg
+            print("TRAINING MODE: Outputting examples for " + TRAINING_DIR_CAT)
 
 
 #########################
@@ -73,7 +81,7 @@ while(True):
 
     elif key_press == ord('s'):
         # if not save_to_file(appended_frame, 'circle'):
-        if not save_to_file( appended_frame, 'circle'):
+        if not save_to_file( appended_frame, TRAINING_DIR_CAT):
             raise Exception('Image did not write!')
         else: 
             print("Image saved!")
