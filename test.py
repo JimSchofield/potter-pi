@@ -1,3 +1,4 @@
+from typing import Dict
 import getopt
 import sys
 import numpy as np
@@ -18,6 +19,34 @@ if len(opts) > 0:
             TRAINING_DIR_CAT = arg
             print("TRAINING MODE: Outputting examples for " + TRAINING_DIR_CAT)
 
+#########################
+# train k nearest neighbors
+#########################
+train = []
+train_labels = []
+train_label_dict: Dict[int, str] = {}
+cat_list = [ item for item in os.listdir(TEST_PICS_DIR)]
+
+for index, category in enumerate(cat_list):
+    # Store category in numbered category dictionary
+    train_label_dict[index] = category
+
+    filenames = [file for file in os.listdir(os.path.join(TEST_PICS_DIR, category))]
+    # load each file into the data array
+    for filename in filenames:
+        train.append(cv2.imread(os.path.join(TEST_PICS_DIR, category, filename), 0))
+        train_labels.append(index)
+
+# format to be acceptable by knn.train
+np_array = np.array(train)
+train = np_array.reshape(-1, 320 * 240).astype(np.float32)
+train_labels = np.array(train_labels)
+
+# kNN
+knn = cv2.ml.KNearest_create() 
+print("Training based off of " + str(len(train)) + " images")
+knn.train(train, cv2.ml.ROW_SAMPLE, train_labels)
+print("Training complete!")
 
 #########################
 # Set up camera capture
@@ -28,6 +57,12 @@ fgbg = cv2.createBackgroundSubtractorMOG2(history=20, varThreshold=50)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
+
+#########################
+# Test Current frame against k nearest neighbor model
+#########################
+def checkCategory(frame):
+    print("Checking!")
 
 #########################
 # Save to file - returns false if error
@@ -74,6 +109,9 @@ while(True):
     key_press = cv2.waitKey(1)
     if key_press == ord('q'):
         break
+
+    elif key_press == ord('b'):
+        checkCategory(appended_frame)
 
     elif key_press == ord('c'):
         old_frame = np.zeros_like(old_frame)
