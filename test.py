@@ -1,3 +1,4 @@
+from functools import reduce
 from typing import Dict
 import getopt
 import sys
@@ -7,7 +8,7 @@ import time
 import os
 
 TEST_PICS_DIR = "test_pics"
-TRAINING_DIR_CAT = ""
+
 
 #########################
 # Process Params
@@ -42,6 +43,8 @@ np_array = np.array(train)
 train = np_array.reshape(-1, 320 * 240).astype(np.float32)
 train_labels = np.array(train_labels)
 
+train = np.clip(train, 0, 1)
+
 # kNN
 knn = cv2.ml.KNearest_create() 
 print("Training based off of " + str(len(train)) + " images")
@@ -63,6 +66,15 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 #########################
 def checkCategory(frame):
     print("Checking!")
+    formatted_frame = np.array(frame).reshape(-1, 320 * 240).astype(np.float32)
+    '''
+    I clamped the values of the training pictures, but I didn't clamp the image
+    below... I'm not sure why but this works better
+    '''
+    # formatted_frame = np.clip(formatted_frame, 0, 1)
+    ret, result, neighbors, dist = knn.findNearest(formatted_frame, k = 5)
+    print(ret, result, neighbors, dist)
+    print("Category: " + train_label_dict[ret])
 
 #########################
 # Save to file - returns false if error
@@ -74,6 +86,23 @@ def save_to_file( frame, directory):
     path = os.path.join(TEST_PICS_DIR, directory, str(time.time()) + ".png")
     print("Saving to: " + path)
     return cv2.imwrite(path, frame)
+
+#########################
+# Check how "full" the image is
+# TODO: need to see if there's a way to do this with sparse matrices
+#########################
+def check_image_density(frame):
+    flat_frame = [item for sublist in frame for item in sublist]
+    def do_sum(x1, x2): return x1 + x2
+    print(reduce(do_sum, flat_frame))
+
+
+#########################
+# check important points
+#########################
+def check_important_points(frame):
+    points = cv2.goodFeaturesToTrack(frame, 25, 0.01, 10)
+    print(points)
 
 #########################
 # Start camera loop
@@ -103,6 +132,10 @@ while(True):
     # cv2.imshow('frame',frame)
     # cv2.imshow('fgmask', fgmask)
 
+    # open image (erode then dilate)
+    kernel = np.ones((5,5), np.uint8)
+    appended_frame = cv2.morphologyEx(appended_frame, cv2.MORPH_CLOSE, kernel)
+
     cv2.imshow('threshold', appended_frame)
 
 
@@ -112,6 +145,12 @@ while(True):
 
     elif key_press == ord('b'):
         checkCategory(appended_frame)
+
+    elif key_press == ord('d'):
+        check_image_density(appended_frame)
+
+    elif key_press == ord('p'):
+        check_important_points(appended_frame)
 
     elif key_press == ord('c'):
         old_frame = np.zeros_like(old_frame)
